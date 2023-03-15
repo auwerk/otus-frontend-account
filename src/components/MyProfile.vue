@@ -22,7 +22,10 @@
         <td>{{ myProfile.phoneNumber }}</td>
       </tr>
       <tr>
-        <td colspan="2"><button v-on:click="editProfile">Редактировать</button></td>
+        <td>
+          <button v-on:click="editProfile">Редактировать</button>
+        </td>
+        <td><span class="error-message">{{ errorMessage }}</span></td>
       </tr>
     </table>
   </div>
@@ -54,9 +57,11 @@
           <td><input v-model="myProfile.phoneNumber" placeholder="89001617878"/></td>
         </tr>
         <tr>
-          <td colspan="2">
-            <button v-on:click="saveChanges">Сохранить</button>
+          <td>
+            <button :disabled="inRequest" v-on:click="saveChanges">Сохранить</button>
+            <button v-on:click="editMode=false">Отменить</button>
           </td>
+          <td><span class="error-message">{{ errorMessage }}</span></td>
         </tr>
       </table>
     </form>
@@ -71,6 +76,8 @@ export default {
   data() {
     return {
       editMode: false,
+      errorMessage: '',
+      inRequest: false,
       myProfile: {
         userName: '',
         email: '',
@@ -82,24 +89,42 @@ export default {
     };
   },
   mounted() {
-    axios.get('/api/user/profile')
-      .then(function(response) { this.myProfile = response.data; }.bind(this));
+    axios.get('/api/user/profile').then(function(response) {
+      this.myProfile = response.data;
+    }.bind(this)).catch(function(response) {
+      console.log(response);
+      this.errorMessage = 'Ошибка при загрузке';
+    }.bind(this));
   },
   methods: {
     editProfile() {
       this.editMode = true;
+      this.errorMessage = '';
     },
     saveChanges() {
-      axios.put('/api/user/profile', this.myProfile)
-          .then(function(response) { console.log(response); this.editMode = false; }.bind(this))
-          .catch(function(response) { console.log(response); alert('Ошибка!') });
-    }
-  }
+      this.errorMessage = '';
+      this.inRequest = true;
+      axios.put('/api/user/profile', this.myProfile).then(function(response) {
+        console.log(response);
+        this.editMode = false;
+        this.inRequest = false;
+      }.bind(this)).catch(function(response) {
+        console.log(response);
+        this.errorMessage = 'Ошибка при сохранении';
+        this.inRequest = false;
+      }.bind(this));
+    },
+  },
 };
 </script>
 
 <style>
 td.prop-key {
   text-align: right;
+}
+
+span.error-message {
+  color: red;
+  font-style: italic;
 }
 </style>
